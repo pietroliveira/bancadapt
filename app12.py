@@ -58,7 +58,8 @@ for selecao in st.session_state["selecoes"]:
         valores = pd.to_numeric(dados.iloc[0, 2:], errors="coerce").where(lambda x: ~x.isna(), None)
 
         # Detectar se os valores são percentuais e preparar para o eixo secundário
-        if valores.max() <= 1:
+        is_percentual = valores.max() <= 1
+        if is_percentual:
             valores *= 100  # Converter para porcentagem
             percentuais.append(f"{selecao['ente']} - {selecao['variavel']}")
 
@@ -112,8 +113,11 @@ fig.update_layout(
 # Exibir o gráfico no Streamlit
 st.plotly_chart(fig, use_container_width=True)
 
-# Exibir a tabela transposta com os dados do gráfico
-if not df_grafico.empty:
-    df_tabela = df_grafico.transpose()
-    st.write("Tabela de Dados:")
-    st.dataframe(df_tabela)
+# Preparar a tabela com percentuais formatados
+df_tabela = df_grafico.copy()
+for coluna in percentuais:
+    df_tabela[coluna] = df_tabela[coluna].apply(lambda x: f"{x:.2f}%" if pd.notna(x) else "")
+
+# Exibir a tabela no Streamlit
+st.write("Tabela de Dados:")
+st.dataframe(df_tabela.transpose())
