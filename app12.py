@@ -111,3 +111,9 @@ fig.update_layout(
 
 # Exibir o gráfico no Streamlit
 st.plotly_chart(fig, use_container_width=True)
+
+# Exibir a tabela transposta com os dados do gráfico
+if not df_grafico.empty:
+    df_tabela = df_grafico.transpose()
+    st.write("Tabela de Dados:")
+    st.dataframe(df_tabela)
