@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 # Carregar a planilha automaticamente
 df = pd.read_excel("Painelteste - Copia.xlsx")
 
-st.title("Painel Interativo: Comparação de Variáveis por Ente Federativo")
+st.title("Painel Bancada do PT - Economia")
 
 entes = df.iloc[:, 0].unique()
 
