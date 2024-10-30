@@ -13,14 +13,22 @@ st.title("Painel Bancada do PT - Economia")
 
 entes = df.iloc[:, 0].unique()
 
+# Função para adicionar uma nova variável
 def adicionar_selecao():
     st.session_state["selecoes"].append({"ente": None, "variavel": None})
 
+# Função para remover uma variável pelo índice
+def remover_selecao(indice):
+    if len(st.session_state["selecoes"]) > 1:  # Sempre manter pelo menos uma variável
+        del st.session_state["selecoes"][indice]
+
+# Inicializar seleções na sessão
 if "selecoes" not in st.session_state:
     st.session_state["selecoes"] = [{"ente": None, "variavel": None}]
 
+# Mostrar seletores dinâmicos com botão de remoção
 for i, selecao in enumerate(st.session_state["selecoes"]):
-    col1, col2 = st.columns([1, 3])
+    col1, col2, col3 = st.columns([1, 3, 1])
 
     with col1:
         ente = st.selectbox(f"Escolha o ente {i + 1}:", entes, key=f"ente_{i}")
@@ -33,8 +41,13 @@ for i, selecao in enumerate(st.session_state["selecoes"]):
         )
         st.session_state["selecoes"][i]["variavel"] = variavel
 
+    with col3:
+        if i > 0:  # Exibir botão de remoção apenas para variáveis adicionais
+            st.button("Remover", key=f"remover_{i}", on_click=remover_selecao, args=(i,))
+
 st.button("+ Adicionar variável", on_click=adicionar_selecao)
 
+# Preparar os dados para o gráfico
 df_grafico = pd.DataFrame()
 percentuais = []
 
