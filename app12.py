@@ -36,12 +36,18 @@ for i, selecao in enumerate(st.session_state["selecoes"]):
 st.button("+ Adicionar variável", on_click=adicionar_selecao)
 
 df_grafico = pd.DataFrame()
+percentuais = []
+
 for selecao in st.session_state["selecoes"]:
     if selecao["ente"] and selecao["variavel"]:
         dados = df[(df.iloc[:, 0] == selecao["ente"]) & (df.iloc[:, 1] == selecao["variavel"])]
         anos = dados.columns[2:].astype(int)
-        valores = pd.to_numeric(dados.iloc[0, 2:], errors="coerce")
-        valores = valores.where(~valores.isna(), None)
+        valores = pd.to_numeric(dados.iloc[0, 2:], errors="coerce").where(lambda x: ~x.isna(), None)
+
+        # Detectar se os valores são percentuais e preparar para o eixo secundário
+        if valores.max() <= 1:
+            valores *= 100  # Converter para porcentagem
+            percentuais.append(f"{selecao['ente']} - {selecao['variavel']}")
 
         coluna_nome = f"{selecao['ente']} - {selecao['variavel']}"
         df_temp = pd.DataFrame(valores.values, index=anos, columns=[coluna_nome])
@@ -49,26 +55,45 @@ for selecao in st.session_state["selecoes"]:
         if coluna_nome not in df_grafico.columns:
             df_grafico = pd.concat([df_grafico, df_temp], axis=1)
 
-# Criar o gráfico e desativar o zoom
+# Criar o gráfico e separar variáveis normais e percentuais
 fig = go.Figure()
-for coluna in df_grafico.columns:
-    fig.add_trace(
-        go.Scatter(x=df_grafico.index, y=df_grafico[coluna], mode="lines+markers", name=coluna)
-    )
 
-# Configurar o layout para desativar o zoom
+for coluna in df_grafico.columns:
+    if coluna in percentuais:
+        fig.add_trace(
+            go.Scatter(
+                x=df_grafico.index,
+                y=df_grafico[coluna],
+                mode="lines+markers+text",
+                name=coluna,
+                text=[f"{v:.2f}%" if v is not None else "" for v in df_grafico[coluna]],
+                textposition="top center",
+                yaxis="y2",
+                line=dict(dash="dot"),
+                hovertemplate="<b>%{text}</b><br>Ano: %{x}<br>Percentual: %{y}%<extra></extra>",
+            )
+        )
+    else:
+        fig.add_trace(
+            go.Scatter(
+                x=df_grafico.index,
+                y=df_grafico[coluna],
+                mode="lines+markers+text",
+                name=coluna,
+                text=[f"{v:.2f}" if v is not None else "" for v in df_grafico[coluna]],
+                textposition="top center",
+                hovertemplate="<b>%{text}</b><br>Ano: %{x}<br>Valor: %{y}<extra></extra>",
+            )
+        )
+
+# Configurar o layout para habilitar o eixo secundário
 fig.update_layout(
     xaxis_title="Ano",
     yaxis_title="Valores Absolutos",
-    dragmode=False,  # Desativa o zoom ao arrastar
-    showlegend=True,
     yaxis2=dict(title="Percentual (%)", overlaying="y", side="right"),
     legend=dict(x=0, y=1.2, orientation="h"),
-)
-
-# Remover os botões de zoom da interface
-fig.update_layout(
-    modebar_remove=["zoom", "pan", "zoomIn", "zoomOut", "autoScale", "resetScale"]
+    dragmode=False,
+    modebar_remove=["zoom", "pan", "zoomIn", "zoomOut", "autoScale", "resetScale"],
 )
 
 # Exibir o gráfico no Streamlit
